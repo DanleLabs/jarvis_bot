@@ -1,8 +1,17 @@
 import { serve } from "@hono/node-server";
 import type { State } from "../state/state";
 import { InputFile } from "grammy";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaClient } from "../generated/prisma/client";
 
 export const startServer = (state: State) => {
+
+  const adapter = new PrismaBetterSqlite3({
+    url: "file:./prisma/dev.db"
+  })
+  const prisma = new PrismaClient({ adapter });
+  state.setPrismaClient(prisma)
+
   const app = state.getHono();
   const bot = state.getBot();
 

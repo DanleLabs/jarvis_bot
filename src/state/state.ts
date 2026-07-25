@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import type { IModel } from "../types/model.type";
 import { MODELS } from "../data/models.data";
 import {QdrantClient} from '@qdrant/js-client-rest';
+import type { PrismaClient } from "../generated/prisma/client";
 
 interface AlbumBucket {
   timer: Timer;
@@ -38,6 +39,7 @@ export class State {
   private photoCache = new Map<string, PhotoBucket>();
   private tunnelURL: string | null = null;
   private model: IModel;
+  private prisma: PrismaClient | null = null;
 
   public constructor(
     currentSessionId: string | null,
@@ -53,6 +55,14 @@ export class State {
     this.hono = new Hono();
     this.model = MODELS[0]!;
     this.bot = new Bot(this.getTelegramBotApiKey());
+  }
+
+  public getPrisma() {
+    return this.prisma
+  }
+
+  public setPrismaClient(prisma: PrismaClient) {
+    this.prisma = prisma
   }
 
   public getQdrant() {

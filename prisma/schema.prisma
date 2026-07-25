@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model AiModel {
+  id String @id @default(cuid())
+  displayName String
+  refferenceName String
+  providerId String
+
+  provider Provider @relation(fields: [providerId], references: [id])
+}
+
+model Provider {
+  id String @id @default(cuid())
+  displayName String
+  refferenceName String
+
+  model AiModel[]
+}
