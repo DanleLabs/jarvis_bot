@@ -13,7 +13,7 @@ export const handleSingleFile = async (
   state: State,
 ) => {
   try {
-    const userPrompt = caption || "Describe this document in detail.";
+    const userPrompt = caption || "";
     const filePath = await saveFile(fileId, fileName || "file", state.getBot());
 
     const response = await sendMessage(state, [

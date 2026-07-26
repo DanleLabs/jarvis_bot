@@ -14,7 +14,7 @@ export async function handleSinglePhoto(
   state: State,
 ) {
   try {
-    const userPrompt = caption || "Describe this image in detail.";
+    const userPrompt = caption || "";
     const dataUrl = await mediaToBase64(fileId, state.getBot());
 
     const response = await sendMessage(state, [

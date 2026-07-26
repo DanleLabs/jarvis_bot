@@ -7,12 +7,41 @@ datasource db {
   provider = "sqlite"
 }
 
+model Admin {
+  id String @id @default(uuid())
+  name String
+  surname String
+  nickname String
+  telegramId String @unique
+  defaultModelId String
+  session Session[]
+  activeSession ActiveSession?
+  aiModel AiModel @relation(fields: [defaultModelId], references: [id])
+}
+
+model Session {
+  id String @id @default(cuid())
+  openCodeId String @unique
+  name String
+
+  adminId String
+  admin Admin @relation(fields: [adminId], references: [id])
+}
+
+model ActiveSession {
+  sessionId String @id
+  openCodeId String @unique
+  adminId String @unique
+  admin Admin @relation(fields: [adminId], references: [id])
+}
+
 model AiModel {
   id String @id @default(cuid())
   displayName String
   refferenceName String
   providerId String
 
+  admin Admin[]
   provider Provider @relation(fields: [providerId], references: [id])
 }
 
