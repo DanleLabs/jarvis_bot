@@ -7,48 +7,61 @@ datasource db {
   provider = "sqlite"
 }
 
-model Admin {
-  id String @id @default(uuid())
-  name String
-  surname String
-  nickname String
-  telegramId String @unique
-  defaultModelId String
-  session Session[]
-  activeSession ActiveSession?
-  aiModel AiModel @relation(fields: [defaultModelId], references: [id])
-}
-
-model Session {
+model Preferences {
   id String @id @default(cuid())
-  openCodeId String @unique
-  name String
+  telegramId String @unique
 
-  adminId String
-  admin Admin @relation(fields: [adminId], references: [id])
+  activeOpencodeId String? @unique
+
+  activeAgentId String @unique
+  activeAgent Agent @relation(fields: [activeAgentId], references: [id])
 }
 
-model ActiveSession {
-  sessionId String @id
+model Context {
+  id         String @id @default(cuid())
   openCodeId String @unique
-  adminId String @unique
-  admin Admin @relation(fields: [adminId], references: [id])
+  name       String?
 }
 
 model AiModel {
-  id String @id @default(cuid())
-  displayName String
-  refferenceName String
-  providerId String
+  id            String   @id @default(cuid())
+  displayName   String
+  referenceName String
+  providerId    String
 
-  admin Admin[]
+  agents   Agent[]
   provider Provider @relation(fields: [providerId], references: [id])
 }
 
 model Provider {
-  id String @id @default(cuid())
-  displayName String
-  refferenceName String
+  id            String    @id @default(cuid())
+  displayName   String
+  referenceName String
 
-  model AiModel[]
+  models AiModel[]
+}
+
+model Agent {
+  id             String  @id @default(cuid())
+  name           String  @unique
+  systemPromptId String
+  ocrPromptId    String?
+  modelId        String
+  imageSupport   Boolean
+
+  systemPrompt Prompt  @relation("SystemPrompt", fields: [systemPromptId], references: [id])
+  ocrPrompt    Prompt? @relation("OcrPrompt", fields: [ocrPromptId], references: [id])
+  model        AiModel @relation(fields: [modelId], references: [id])
+
+  preferences Preferences?
+}
+
+model Prompt {
+  id      String @id @default(cuid())
+  name    String @unique
+  command String @unique
+  prompt  String
+
+  systemAgents Agent[] @relation("SystemPrompt")
+  ocrAgents    Agent[] @relation("OcrPrompt")
 }

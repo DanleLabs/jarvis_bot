@@ -1,7 +1,32 @@
-import type { State } from "../state/state";
+import type { State } from "../../../state/state";
 
 export const imageToText = async (base64: string, state: State) => {
+
+  let ocr: string
+
+  const prisma = state.getPrisma()
   const openrouter = state.getOpenRouter();
+  const preferences = await prisma.preferences.findFirstOrThrow({
+    include: {
+      activeAgent: true
+    }
+  })
+  if (!preferences) throw new Error("preferences not found")
+  const ocrPromptId = preferences.activeAgent.ocrPromptId
+  if (!ocrPromptId) {
+    ocr = state.getDefaultOcrPrompt()
+  } else {
+    const ocrPrompt = await prisma.prompt.findUnique({
+      where: {
+        id: ocrPromptId,
+      }
+    })
+    if (!ocrPrompt) {
+      ocr = state.getDefaultOcrPrompt()
+    } else {
+      ocr = ocrPrompt.prompt
+    }
+  }
 
   const response = await openrouter.chat.send({
     chatRequest: {
@@ -12,7 +37,7 @@ export const imageToText = async (base64: string, state: State) => {
       messages: [
         {
           role: "system",
-          content: state.getOcrPrompt(),
+          content: ocr,
         },
         {
           role: "user",

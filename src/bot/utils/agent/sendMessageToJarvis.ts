@@ -1,23 +1,37 @@
 import type { State } from "../../../state/state";
-import type { IModel } from "../../../types/model.type";
 import type { Part } from "../../types/parts.type";
 
 export const sendMessage = async (
   state: State,
   parts: Part[],
-  model: IModel = state.getModel(),
 ) => {
+  const prisma = state.getPrisma()
+  const preferences = await prisma.preferences.findFirst()
+  const agent = await prisma.agent.findUnique({
+    where: {
+      id: preferences?.activeAgentId
+    },
+    include: {
+      systemPrompt: true,
+      model: {
+        include: {
+          provider: true
+        }
+      }
+    }
+  })
+  if (!agent || !preferences || !preferences.activeOpencodeId || !agent.model.referenceName || !agent.model.provider.referenceName) throw new Error("Not found")
   try {
     const response = await state.getOpencodeClient().session.prompt({
-      path: { id: state.getCurrentSessionId() },
+      path: { id: preferences?.activeOpencodeId },
       body: {
-        model: { modelID: model.modelID, providerID: model.provider.id },
-        system: state.getSystemPrompt(),
+        model: { modelID: agent.model.referenceName, providerID: agent.model.provider.referenceName },
+        system: agent?.systemPrompt.prompt || state.getDefaultSystemPrompt(),
         parts,
       },
     });
     return response;
   } catch (error) {
-    state.getBot().api.sendMessage(state.getTelegramId(), "Opencode Error.");
+    state.getBot().api.sendMessage(state.getTelegramId(), "System: Opencode-Server Error");
   }
 };

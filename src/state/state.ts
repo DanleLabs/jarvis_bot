@@ -2,12 +2,11 @@ import type { OpencodeClient } from "@opencode-ai/sdk";
 import prompt from "../data/systemPrompt.txt";
 import { OpenRouter } from "@openrouter/sdk";
 import ocrPrompt from "../data/systemOcr.txt";
-import { Bot } from "grammy";
+import { Bot, Context } from "grammy";
 import { Hono } from "hono";
-import type { IModel } from "../types/model.type";
-import { MODELS } from "../data/models.data";
 import {QdrantClient} from '@qdrant/js-client-rest';
 import type { PrismaClient } from "../generated/prisma/client";
+import type { ConversationFlavor } from "@grammyjs/conversations";
 
 interface AlbumBucket {
   timer: Timer;
@@ -22,47 +21,40 @@ interface PhotoBucket {
 }
 
 export class State {
-  private bot: Bot;
+  private bot: Bot<ConversationFlavor<Context>>;
   private qdrant = new QdrantClient({url: "http://127.0.0.1:6333"})
-  private isBusy: boolean = false;
-  private currentSessionId: string;
-  private telegramBotApiKey: string;
-  private telegramId: string;
+  private telegramBotApiKey: string = process.env.TELEGRAM_BOT_API_KEY!;
+  private allowedTgId: string = process.env.USER_TELEGRAM_ID!
   private opencodeClient: OpencodeClient;
   private openRouterClient = new OpenRouter({
     apiKey: process.env.OPEN_ROUTER_API_KEY,
   });
   private hono: Hono;
-  private systemPrompt: string;
-  private ocrPrompt: string;
   private albumCache = new Map<string, AlbumBucket>();
   private photoCache = new Map<string, PhotoBucket>();
-  private tunnelURL: string | null = null;
-  private model: IModel;
-  private prisma: PrismaClient | null = null;
+  private prisma: PrismaClient
+  private defaultSystemPrompt: string = prompt
+  private defaultOcrPrompt: string = ocrPrompt
 
   public constructor(
-    currentSessionId: string | null,
-    telegramBotApiKey: string,
-    opencodeClient: OpencodeClient,
+    data: {bot: Bot<ConversationFlavor<Context>>, hono: Hono, openRouter: OpenRouter, opencode: OpencodeClient, prisma: PrismaClient}
   ) {
-    this.currentSessionId = currentSessionId || "";
-    this.opencodeClient = opencodeClient;
-    this.telegramBotApiKey = telegramBotApiKey;
-    this.systemPrompt = prompt;
-    this.telegramId = process.env.USER_TELEGRAM_ID!;
-    this.ocrPrompt = ocrPrompt;
-    this.hono = new Hono();
-    this.model = MODELS[0]!;
-    this.bot = new Bot(this.getTelegramBotApiKey());
+    this.opencodeClient = data.opencode;
+    this.hono = data.hono;
+    this.bot = data.bot;
+    this.openRouterClient = data.openRouter
+    this.prisma = data.prisma
+  }
+
+  public getDefaultSystemPrompt() {
+    return this.defaultSystemPrompt
+  }
+  public getDefaultOcrPrompt() {
+    return this.defaultOcrPrompt
   }
 
   public getPrisma() {
     return this.prisma
-  }
-
-  public setPrismaClient(prisma: PrismaClient) {
-    this.prisma = prisma
   }
 
   public getQdrant() {
@@ -73,16 +65,8 @@ export class State {
     return this.photoCache;
   }
 
-  public getIsBusy() {
-    return this.isBusy;
-  }
-
-  public setIsBusy(value: boolean) {
-    this.isBusy = value;
-  }
-
   public getTelegramId() {
-    return this.telegramId;
+    return this.allowedTgId;
   }
 
   public getHono() {
@@ -93,20 +77,8 @@ export class State {
     return this.bot;
   }
 
-  public getOcrPrompt() {
-    return this.ocrPrompt;
-  }
-
   public getOpenRouter() {
     return this.openRouterClient;
-  }
-
-  public getCurrentSessionId() {
-    return this.currentSessionId;
-  }
-
-  public setCurrentSessionId(newId: string) {
-    this.currentSessionId = newId;
   }
 
   public getTelegramBotApiKey() {
@@ -117,29 +89,7 @@ export class State {
     return this.opencodeClient;
   }
 
-  public getSystemPrompt() {
-    return this.systemPrompt;
-  }
-
   public getAlbumCache() {
     return this.albumCache;
-  }
-
-  public setTunnelUrl(url: string) {
-    this.tunnelURL = url;
-  }
-
-  public getTunnelUrl() {
-    return this.tunnelURL;
-  }
-
-  public getModel() {
-    return this.model;
-  }
-
-  public setModel(id: string) {
-    const newModel = MODELS.find((item) => item.id === +id);
-    if (!newModel) return new Error("Model was not found");
-    this.model = newModel;
   }
 }
